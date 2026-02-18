@@ -10,6 +10,14 @@ import {
   unformatPhone,
 } from './formatter';
 
+const toLocalDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+};
+
 describe('포맷터 유틸리티', () => {
   describe('formatDate', () => {
     it('날짜를 한국어 형식으로 포맷팅해야 함', () => {
@@ -57,7 +65,7 @@ describe('포맷터 유틸리티', () => {
     it('미래 날짜에 대해 D-day를 계산해야 함', () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const futureDate = tomorrow.toISOString().split('T')[0] ?? '';
+      const futureDate = toLocalDateString(tomorrow);
 
       const result = calculateDday(futureDate);
 
@@ -65,7 +73,7 @@ describe('포맷터 유틸리티', () => {
     });
 
     it('오늘 날짜는 D-Day여야 함', () => {
-      const today = new Date().toISOString().split('T')[0] ?? '';
+      const today = toLocalDateString(new Date());
 
       const result = calculateDday(today);
 
