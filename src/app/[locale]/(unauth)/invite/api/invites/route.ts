@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 
 import { getOptionalUserId } from '@/features/invite/server/auth';
 import { createInvite, listInvitesByOwner } from '@/features/invite/server/repository';
+import {
+  buildRateLimitKey,
+  checkRateLimit,
+  createOriginErrorResponse,
+  createRateLimitResponse,
+  validateSameOrigin,
+} from '@/features/invite/server/route-security';
 import { inviteFormSchema } from '@/features/invite/utils/invite-form-schema';
 
 export async function GET(request: Request) {
@@ -22,6 +29,15 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!validateSameOrigin(request)) {
+    return createOriginErrorResponse();
+  }
+
+  const rateLimit = checkRateLimit(buildRateLimitKey('invite-create', request), { limit: 20, windowMs: 60_000 });
+  if (!rateLimit.ok) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = inviteFormSchema.safeParse(body);
 

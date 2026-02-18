@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 
 import { addRsvp, getInviteById, getRsvpSummary, listRsvps } from '@/features/invite/server/repository';
+import {
+  buildRateLimitKey,
+  checkRateLimit,
+  createRateLimitResponse,
+} from '@/features/invite/server/route-security';
 import { inviteRsvpSchema } from '@/features/invite/utils/invite-form-schema';
 
 export async function GET(
@@ -24,6 +29,14 @@ export async function POST(
   request: Request,
   context: { params: { inviteId: string } },
 ) {
+  const rateLimit = checkRateLimit(buildRateLimitKey(`invite-rsvp:${context.params.inviteId}`, request), {
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   const invite = await getInviteById(context.params.inviteId);
   if (!invite) {
     return NextResponse.json({ message: '초대장을 찾을 수 없습니다.' }, { status: 404 });

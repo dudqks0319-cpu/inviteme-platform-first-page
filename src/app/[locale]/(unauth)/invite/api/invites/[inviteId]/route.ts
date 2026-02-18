@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 
 import { getOptionalUserId } from '@/features/invite/server/auth';
 import { getInviteById, updateInvite } from '@/features/invite/server/repository';
+import {
+  buildRateLimitKey,
+  checkRateLimit,
+  createOriginErrorResponse,
+  createRateLimitResponse,
+  validateSameOrigin,
+} from '@/features/invite/server/route-security';
 import { inviteFormSchema } from '@/features/invite/utils/invite-form-schema';
 
 export async function GET(
@@ -15,7 +22,7 @@ export async function GET(
   }
 
   const userId = await getOptionalUserId();
-  if (invite.ownerId && invite.ownerId !== userId) {
+  if (!userId || invite.ownerId !== userId) {
     return NextResponse.json({ message: '조회 권한이 없습니다.' }, { status: 403 });
   }
 
@@ -26,6 +33,18 @@ export async function PATCH(
   request: Request,
   context: { params: { inviteId: string } },
 ) {
+  if (!validateSameOrigin(request)) {
+    return createOriginErrorResponse();
+  }
+
+  const rateLimit = checkRateLimit(buildRateLimitKey(`invite-update:${context.params.inviteId}`, request), {
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   const target = await getInviteById(context.params.inviteId);
 
   if (!target) {
@@ -34,7 +53,7 @@ export async function PATCH(
 
   const userId = await getOptionalUserId();
 
-  if (target.ownerId && target.ownerId !== userId) {
+  if (!userId || target.ownerId !== userId) {
     return NextResponse.json({ message: '수정 권한이 없습니다.' }, { status: 403 });
   }
 

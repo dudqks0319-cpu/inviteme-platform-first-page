@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 
 import { db } from '@/libs/DB';
 import { inviteGuestbookSchema, inviteRsvpSchema, inviteSchema } from '@/models/Schema';
@@ -103,11 +103,7 @@ export const createInvite = async (input: InviteFormData, ownerId?: string | nul
   return { id, shareId };
 };
 
-export const updateInvite = async (id: string, input: InviteFormData, ownerId?: string | null) => {
-  const where = ownerId
-    ? and(eq(inviteSchema.id, id), eq(inviteSchema.ownerId, ownerId))
-    : eq(inviteSchema.id, id);
-
+export const updateInvite = async (id: string, input: InviteFormData, ownerId: string) => {
   const result = await db
     .update(inviteSchema)
     .set({
@@ -122,23 +118,19 @@ export const updateInvite = async (id: string, input: InviteFormData, ownerId?: 
       hostName: input.hostName ?? null,
       extraData: serializeExtraData(input.extraData),
     })
-    .where(where)
+    .where(and(eq(inviteSchema.id, id), eq(inviteSchema.ownerId, ownerId)))
     .returning();
 
   return result[0] ? mapInvite(result[0]) : null;
 };
 
-export const markInvitePaid = async (id: string, ownerId?: string | null) => {
-  const where = ownerId
-    ? and(eq(inviteSchema.id, id), eq(inviteSchema.ownerId, ownerId))
-    : eq(inviteSchema.id, id);
-
+export const markInvitePaid = async (id: string, ownerId: string) => {
   const rows = await db
     .update(inviteSchema)
     .set({
       isPaid: true,
     })
-    .where(where)
+    .where(and(eq(inviteSchema.id, id), eq(inviteSchema.ownerId, ownerId)))
     .returning();
 
   return rows[0] ? mapInvite(rows[0]) : null;
@@ -211,14 +203,20 @@ export const listRsvps = async (inviteId: string) => {
 };
 
 export const getRsvpSummary = async (inviteId: string) => {
-  const rows = await listRsvps(inviteId);
-  const attendingCount = rows.filter(item => item.attending).reduce((sum, item) => sum + item.guestCount, 0);
-  const declineCount = rows.filter(item => !item.attending).length;
+  const rows = await db
+    .select({
+      totalResponses: sql<number>`count(*)`,
+      attendingCount: sql<number>`coalesce(sum(case when ${inviteRsvpSchema.attending} then ${inviteRsvpSchema.guestCount} else 0 end), 0)`,
+      declineCount: sql<number>`coalesce(sum(case when not ${inviteRsvpSchema.attending} then 1 else 0 end), 0)`,
+    })
+    .from(inviteRsvpSchema)
+    .where(eq(inviteRsvpSchema.inviteId, inviteId));
 
+  const summary = rows[0];
   return {
-    totalResponses: rows.length,
-    attendingCount,
-    declineCount,
+    totalResponses: Number(summary?.totalResponses ?? 0),
+    attendingCount: Number(summary?.attendingCount ?? 0),
+    declineCount: Number(summary?.declineCount ?? 0),
   };
 };
 

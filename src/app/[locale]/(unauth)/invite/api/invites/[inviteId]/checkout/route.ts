@@ -2,11 +2,30 @@ import { NextResponse } from 'next/server';
 
 import { getOptionalUserId } from '@/features/invite/server/auth';
 import { getInviteById, markInvitePaid } from '@/features/invite/server/repository';
+import {
+  buildRateLimitKey,
+  checkRateLimit,
+  createOriginErrorResponse,
+  createRateLimitResponse,
+  validateSameOrigin,
+} from '@/features/invite/server/route-security';
 
 export async function POST(
   request: Request,
   context: { params: { inviteId: string; locale: string } },
 ) {
+  if (!validateSameOrigin(request)) {
+    return createOriginErrorResponse();
+  }
+
+  const rateLimit = checkRateLimit(buildRateLimitKey(`invite-checkout:${context.params.inviteId}`, request), {
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!rateLimit.ok) {
+    return createRateLimitResponse(rateLimit);
+  }
+
   const invite = await getInviteById(context.params.inviteId);
 
   if (!invite) {
@@ -14,7 +33,7 @@ export async function POST(
   }
 
   const userId = await getOptionalUserId();
-  if (invite.ownerId && invite.ownerId !== userId) {
+  if (!userId || invite.ownerId !== userId) {
     return NextResponse.json({ message: '결제 권한이 없습니다.' }, { status: 403 });
   }
 
