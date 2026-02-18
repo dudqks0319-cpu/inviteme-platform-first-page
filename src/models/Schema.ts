@@ -1,5 +1,8 @@
 import {
   bigint,
+  boolean,
+  index,
+  integer,
   pgTable,
   serial,
   text,
@@ -57,3 +60,66 @@ export const todoSchema = pgTable('todo', {
     .notNull(),
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
+
+export const inviteSchema = pgTable(
+  'invite',
+  {
+    id: text('id').primaryKey(),
+    shareId: text('share_id').notNull(),
+    ownerId: text('owner_id'),
+    templateId: text('template_id').notNull(),
+    type: text('type').notNull(),
+    title: text('title').notNull(),
+    greeting: text('greeting').notNull(),
+    eventDate: text('event_date').notNull(),
+    eventTime: text('event_time').notNull(),
+    venueName: text('venue_name').notNull(),
+    venueAddress: text('venue_address').notNull(),
+    hostName: text('host_name'),
+    isPremium: boolean('is_premium').default(false).notNull(),
+    isPaid: boolean('is_paid').default(false).notNull(),
+    status: text('status').default('published').notNull(),
+    extraData: text('extra_data').default('{}').notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { mode: 'date' })
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  table => ({
+    shareIdUniqueIdx: uniqueIndex('invite_share_id_unique_idx').on(table.shareId),
+    ownerIdIdx: index('invite_owner_id_idx').on(table.ownerId),
+    statusIdx: index('invite_status_idx').on(table.status),
+  }),
+);
+
+export const inviteRsvpSchema = pgTable(
+  'invite_rsvp',
+  {
+    id: serial('id').primaryKey(),
+    inviteId: text('invite_id').notNull(),
+    guestName: text('guest_name').notNull(),
+    guestPhone: text('guest_phone'),
+    guestCount: integer('guest_count').default(1).notNull(),
+    attending: boolean('attending').notNull(),
+    message: text('message'),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  table => ({
+    inviteIdIdx: index('invite_rsvp_invite_id_idx').on(table.inviteId),
+  }),
+);
+
+export const inviteGuestbookSchema = pgTable(
+  'invite_guestbook',
+  {
+    id: serial('id').primaryKey(),
+    inviteId: text('invite_id').notNull(),
+    authorName: text('author_name').notNull(),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+  },
+  table => ({
+    inviteIdIdx: index('invite_guestbook_invite_id_idx').on(table.inviteId),
+  }),
+);

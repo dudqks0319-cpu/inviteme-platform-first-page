@@ -1,11 +1,13 @@
 // 초대장 타입
 export type InviteType = 'wedding' | 'doljanchi' | 'birthday' | 'housewarming' | 'hwangap' | 'general';
 
+export type InviteStatus = 'draft' | 'published' | 'archived';
+
 // 템플릿 스타일
 export type TemplateStyle = 'floral' | 'classic' | 'modern' | 'elegant' | 'luxury' | 'cute' | 'minimal';
 
-// 템플릿 인터페이스
-export interface Template {
+// 템플릿 정의
+export type Template = {
   id: string;
   type: InviteType;
   name: string;
@@ -15,39 +17,70 @@ export interface Template {
   primaryColor: string;
   fontFamily: string;
   description: string;
-}
+};
 
-// 초대장 데이터 (기존 URL 인코딩 방식)
-export interface InviteData {
+export type InviteExtraData = {
+  groomName?: string;
+  brideName?: string;
+  babyName?: string;
+  babyGender?: 'male' | 'female';
+  celebrantName?: string;
+  celebrantGender?: 'male' | 'female';
+  hostNames?: string;
+  hostName?: string;
+  parentNames?: string;
+  birthDate?: string;
+  birthYear?: number;
+  age?: number;
+  contactPhone?: string;
+  accountInfo?: string;
+};
+
+export type InviteFormData = {
   templateId: string;
   type: InviteType;
-  greeting?: string;
-  contact?: string;
-  account?: string;
-  eventData: Record<string, any>;
-}
+  title: string;
+  greeting: string;
+  eventDate: string;
+  eventTime: string;
+  venueName: string;
+  venueAddress: string;
+  hostName?: string;
+  extraData?: InviteExtraData;
+};
 
-// DB 저장용 초대장 (향후 사용)
-export interface InviteRecord {
+export type InviteRecord = InviteFormData & {
   id: string;
-  userId: string;
-  templateId: string;
-  type: InviteType;
-  status: 'draft' | 'published' | 'expired';
+  shareId: string;
+  ownerId: string | null;
+  isPremium: boolean;
   isPaid: boolean;
-  greeting?: string;
-  contact?: string;
-  account?: string;
-  eventData: Record<string, any>;
-  viewCount: number;
+  status: InviteStatus;
   createdAt: Date;
   updatedAt: Date;
-  expiresAt?: Date;
-}
+};
 
-// 공유 데이터
-export interface ShareData {
+export type InviteRsvpRecord = {
+  id: number;
+  inviteId: string;
+  guestName: string;
+  guestPhone: string | null;
+  guestCount: number;
+  attending: boolean;
+  message: string | null;
+  createdAt: Date;
+};
+
+export type InviteGuestbookRecord = {
+  id: number;
+  inviteId: string;
+  authorName: string;
+  content: string;
+  createdAt: Date;
+};
+
+export type ShareData = {
   inviteUrl: string;
   title: string;
   description: string;
-}
+};

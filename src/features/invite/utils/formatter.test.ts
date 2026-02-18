@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import {
   calculateDday,
   formatAddress,
@@ -54,17 +55,17 @@ describe('포맷터 유틸리티', () => {
 
   describe('calculateDday', () => {
     it('미래 날짜에 대해 D-day를 계산해야 함', () => {
-      const today = new Date('2026-01-01');
-      const futureDate = '2026-01-31';
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const futureDate = tomorrow.toISOString().split('T')[0] ?? '';
 
-      // Mock 시간 설정이 없으므로 실제 날짜 차이로 테스트
       const result = calculateDday(futureDate);
 
       expect(result).toMatch(/^D-\d+$/);
     });
 
     it('오늘 날짜는 D-Day여야 함', () => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0] ?? '';
 
       const result = calculateDday(today);
 
@@ -113,19 +114,19 @@ describe('포맷터 유틸리티', () => {
   describe('formatAddress', () => {
     it('쉼표를 줄바꿈으로 변환해야 함', () => {
       expect(formatAddress('서울시 강남구 테헤란로 123, 4층')).toBe(
-        '서울시 강남구 테헤란로 123\n4층'
+        '서울시 강남구 테헤란로 123\n4층',
       );
     });
 
     it('쉼표가 없으면 그대로 반환해야 함', () => {
       expect(formatAddress('서울시 강남구 테헤란로 123')).toBe(
-        '서울시 강남구 테헤란로 123'
+        '서울시 강남구 테헤란로 123',
       );
     });
 
     it('여러 개의 쉼표를 모두 줄바꿈으로 변환해야 함', () => {
       expect(formatAddress('서울시 강남구 테헤란로 123, 그랜드빌딩, 4층')).toBe(
-        '서울시 강남구 테헤란로 123\n그랜드빌딩\n4층'
+        '서울시 강남구 테헤란로 123\n그랜드빌딩\n4층',
       );
     });
   });

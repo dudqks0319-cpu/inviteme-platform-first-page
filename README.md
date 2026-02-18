@@ -184,7 +184,7 @@ Coverage: 100%
 
 ### 새로운 템플릿 추가
 
-```typescript
+```txt
 // src/features/invite/data/templates.json
 {
   "id": "wedding-06",

@@ -1,13 +1,14 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+
 import type { Template } from '../types';
 
-interface TemplateCardProps {
+type TemplateCardProps = {
   template: Template;
   onSelect: (templateId: string) => void;
   isSelected?: boolean;
-}
+};
 
 export function TemplateCard({ template, onSelect, isSelected = false }: TemplateCardProps) {
   return (
@@ -17,7 +18,7 @@ export function TemplateCard({ template, onSelect, isSelected = false }: Templat
       }`}
       style={{
         backgroundColor: template.backgroundColor,
-        borderColor: template.primaryColor
+        borderColor: template.primaryColor,
       }}
       onClick={() => onSelect(template.id)}
     >

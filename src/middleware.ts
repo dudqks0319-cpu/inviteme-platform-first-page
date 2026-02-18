@@ -10,7 +10,7 @@ import { AllLocales, AppConfig } from './utils/AppConfig';
 
 const intlMiddleware = createMiddleware({
   locales: AllLocales,
-  localePrefix: AppConfig.localePrefix,
+  localePrefix: AppConfig.localePrefix as 'always',
   defaultLocale: AppConfig.defaultLocale,
 });
 

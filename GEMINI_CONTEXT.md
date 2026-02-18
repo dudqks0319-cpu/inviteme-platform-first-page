@@ -49,11 +49,12 @@ src/app/[locale]/(unauth)/invite/create/page.tsx
 ```typescript
 'use client';
 
-import { useSearchParams } from 'next/navigation';
-import { getTemplateById } from '@/features/invite/data/templates';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useSearchParams } from 'next/navigation';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+
+import { getTemplateById } from '@/features/invite/data/templates';
 
 // Zod 스키마
 const inviteSchema = z.object({

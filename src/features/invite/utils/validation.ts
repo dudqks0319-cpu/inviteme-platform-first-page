@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import type { InviteType } from '../types';
 
 // ============ 공통 필드 스키마 ============
@@ -6,11 +7,11 @@ const commonFieldsSchema = z.object({
   eventDate: z.string().refine(
     (date) => {
       const parsed = new Date(date);
-      return !isNaN(parsed.getTime()) && parsed > new Date();
+      return !Number.isNaN(parsed.getTime()) && parsed > new Date();
     },
-    { message: '이벤트 날짜는 미래 날짜여야 합니다' }
+    { message: '이벤트 날짜는 미래 날짜여야 합니다' },
   ),
-  eventTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, {
+  eventTime: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, {
     message: '시간 형식이 올바르지 않습니다 (HH:MM)',
   }),
   venueName: z.string().min(1, '장소명을 입력해주세요').max(100),
@@ -49,9 +50,9 @@ export const doljanchiInviteSchema = commonFieldsSchema.extend({
       const parsed = new Date(date);
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      return !isNaN(parsed.getTime()) && parsed > oneYearAgo && parsed < new Date();
+      return !Number.isNaN(parsed.getTime()) && parsed > oneYearAgo && parsed < new Date();
     },
-    { message: '출생일은 1년 이내여야 합니다' }
+    { message: '출생일은 1년 이내여야 합니다' },
   ),
   parentNames: z.string().min(1, '부모님 이름을 입력해주세요').max(100),
   parentPhone: z.string().regex(/^010-\d{4}-\d{4}$/).optional(),

@@ -1,12 +1,11 @@
-import type { Template } from '../types';
-
 // templates.json을 TypeScript로 import
+import type { InviteType, Template } from '../types';
 import templatesJson from './templates.json';
 
 export const TEMPLATES: Template[] = templatesJson as Template[];
 
 // 타입별 템플릿 필터링
-export const getTemplatesByType = (type: string) => {
+export const getTemplatesByType = (type: InviteType) => {
   return TEMPLATES.filter(template => template.type === type);
 };
 
