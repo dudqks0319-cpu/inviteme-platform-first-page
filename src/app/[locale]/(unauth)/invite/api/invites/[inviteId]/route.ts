@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { getOptionalUserId } from '@/features/invite/server/auth';
-import { getInviteById, updateInvite } from '@/features/invite/server/repository';
+import { deleteInvite, getInviteByIdAndOwner, updateInvite } from '@/features/invite/server/repository';
 import {
   buildRateLimitKey,
   checkRateLimit,
@@ -15,15 +15,17 @@ export async function GET(
   _request: Request,
   context: { params: { inviteId: string } },
 ) {
-  const invite = await getInviteById(context.params.inviteId);
+  const userId = await getOptionalUserId();
+
+  if (!userId) {
+    return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
+  }
+
+  // 타이밍 공격 방지: 내 초대장이 아니면 존재 여부조차 모르게 404 처리
+  const invite = await getInviteByIdAndOwner(context.params.inviteId, userId);
 
   if (!invite) {
     return NextResponse.json({ message: '초대장을 찾을 수 없습니다.' }, { status: 404 });
-  }
-
-  const userId = await getOptionalUserId();
-  if (!userId || invite.ownerId !== userId) {
-    return NextResponse.json({ message: '조회 권한이 없습니다.' }, { status: 403 });
   }
 
   return NextResponse.json({ invite });
@@ -45,16 +47,17 @@ export async function PATCH(
     return createRateLimitResponse(rateLimit);
   }
 
-  const target = await getInviteById(context.params.inviteId);
+  const userId = await getOptionalUserId();
+
+  if (!userId) {
+    return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
+  }
+
+  // 권한 체크 및 존재 확인 (DB 레벨 ownerId 필터)
+  const target = await getInviteByIdAndOwner(context.params.inviteId, userId);
 
   if (!target) {
     return NextResponse.json({ message: '초대장을 찾을 수 없습니다.' }, { status: 404 });
-  }
-
-  const userId = await getOptionalUserId();
-
-  if (!userId || target.ownerId !== userId) {
-    return NextResponse.json({ message: '수정 권한이 없습니다.' }, { status: 403 });
   }
 
   const body = await request.json().catch(() => null);
@@ -70,7 +73,31 @@ export async function PATCH(
     );
   }
 
+  // updateInvite 내부에서도 where ownerId 체크함 (이중 방어)
   const updated = await updateInvite(context.params.inviteId, parsed.data, userId);
 
   return NextResponse.json({ invite: updated });
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: { inviteId: string } },
+) {
+  if (!validateSameOrigin(request)) {
+    return createOriginErrorResponse();
+  }
+
+  const userId = await getOptionalUserId();
+
+  if (!userId) {
+    return NextResponse.json({ message: '로그인이 필요합니다.' }, { status: 401 });
+  }
+
+  const deleted = await deleteInvite(context.params.inviteId, userId);
+
+  if (!deleted) {
+    return NextResponse.json({ message: '초대장을 찾을 수 없거나 삭제할 수 없습니다.' }, { status: 404 });
+  }
+
+  return NextResponse.json({ message: '삭제되었습니다.', id: deleted.id });
 }

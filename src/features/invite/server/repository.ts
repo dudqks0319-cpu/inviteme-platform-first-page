@@ -141,6 +141,23 @@ export const getInviteById = async (id: string) => {
   return rows[0] ? mapInvite(rows[0]) : null;
 };
 
+export const getInviteByIdAndOwner = async (id: string, ownerId: string) => {
+  const rows = await db
+    .select()
+    .from(inviteSchema)
+    .where(and(eq(inviteSchema.id, id), eq(inviteSchema.ownerId, ownerId)))
+    .limit(1);
+  return rows[0] ? mapInvite(rows[0]) : null;
+};
+
+export const deleteInvite = async (id: string, ownerId: string) => {
+  const rows = await db
+    .delete(inviteSchema)
+    .where(and(eq(inviteSchema.id, id), eq(inviteSchema.ownerId, ownerId)))
+    .returning();
+  return rows[0] ? mapInvite(rows[0]) : null;
+};
+
 export const getInviteByShareId = async (shareId: string) => {
   const rows = await db
     .select()
