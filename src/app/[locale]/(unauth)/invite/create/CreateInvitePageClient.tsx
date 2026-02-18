@@ -70,6 +70,9 @@ export default function InviteCreatePageClient() {
   const [selectedTemplateId, setSelectedTemplateId] = useState(templateIdFromQuery);
   const [loadingInvite, setLoadingInvite] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [submitMessage, setSubmitMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   const template = useMemo(() => {
     return selectedTemplateId ? getTemplateById(selectedTemplateId) : null;
@@ -79,6 +82,8 @@ export default function InviteCreatePageClient() {
     resolver: zodResolver(inviteFormSchema),
     defaultValues: createDefaultValues(templateIdFromQuery),
   });
+
+  const draftStorageKey = `invite-draft:${selectedTemplateId || templateIdFromQuery || 'unknown'}`;
 
   useEffect(() => {
     if (!selectedTemplateId) {
@@ -92,6 +97,55 @@ export default function InviteCreatePageClient() {
     const defaults = createDefaultValues(selectedTemplateId);
     form.reset(defaults);
   }, [form, inviteId, selectedTemplateId]);
+
+  useEffect(() => {
+    if (inviteId || !selectedTemplateId || typeof window === 'undefined') {
+      return;
+    }
+
+    const rawDraft = window.localStorage.getItem(draftStorageKey);
+    if (!rawDraft) {
+      setDraftLoaded(false);
+      return;
+    }
+
+    let parsedDraft: unknown;
+    try {
+      parsedDraft = JSON.parse(rawDraft);
+    } catch {
+      window.localStorage.removeItem(draftStorageKey);
+      setDraftLoaded(false);
+      return;
+    }
+
+    const parsed = inviteFormSchema.safeParse(parsedDraft);
+    if (!parsed.success) {
+      window.localStorage.removeItem(draftStorageKey);
+      setDraftLoaded(false);
+      return;
+    }
+
+    form.reset(parsed.data);
+    setDraftLoaded(true);
+    setSubmitMessage('임시 저장된 작성 내용이 복원되었습니다.');
+  }, [draftStorageKey, form, inviteId, selectedTemplateId]);
+
+  useEffect(() => {
+    if (inviteId || !selectedTemplateId || typeof window === 'undefined') {
+      return;
+    }
+
+    const subscription = form.watch((values) => {
+      const parsed = inviteFormSchema.safeParse(values);
+      if (!parsed.success) {
+        return;
+      }
+
+      window.localStorage.setItem(draftStorageKey, JSON.stringify(parsed.data));
+    });
+
+    return () => subscription.unsubscribe();
+  }, [draftStorageKey, form, inviteId, selectedTemplateId]);
 
   useEffect(() => {
     if (!inviteId) {
@@ -149,6 +203,8 @@ export default function InviteCreatePageClient() {
 
   const handleSubmit = async (values: InviteFormInput) => {
     setSubmitError('');
+    setSubmitMessage('');
+    setSubmitting(true);
 
     const endpoint = inviteId
       ? getI18nPath(`/invite/api/invites/${inviteId}`, locale)
@@ -166,15 +222,22 @@ export default function InviteCreatePageClient() {
 
     if (!response.ok) {
       setSubmitError(data?.message || '초대장 저장에 실패했습니다.');
+      setSubmitting(false);
       return;
+    }
+
+    if (!inviteId && typeof window !== 'undefined') {
+      window.localStorage.removeItem(draftStorageKey);
     }
 
     const targetId = inviteId || data.id;
     if (!targetId) {
       setSubmitError('저장 결과를 확인할 수 없습니다. 다시 시도해주세요.');
+      setSubmitting(false);
       return;
     }
 
+    setSubmitting(false);
     router.push(getI18nPath(`/invite/preview?id=${targetId}`, locale));
   };
 
@@ -210,6 +273,33 @@ export default function InviteCreatePageClient() {
           {submitError && (
             <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
               {submitError}
+            </div>
+          )}
+
+          {submitMessage && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              {submitMessage}
+            </div>
+          )}
+
+          {draftLoaded && !inviteId && (
+            <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              <span>이전에 작성하던 임시 저장본을 불러왔습니다.</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.removeItem(draftStorageKey);
+                  }
+                  form.reset(createDefaultValues(selectedTemplateId));
+                  setDraftLoaded(false);
+                  setSubmitMessage('임시 저장본을 삭제하고 기본값으로 초기화했습니다.');
+                }}
+              >
+                임시저장 삭제
+              </Button>
             </div>
           )}
 
@@ -435,8 +525,12 @@ export default function InviteCreatePageClient() {
                     </div>
 
                     <div className="flex flex-wrap gap-3 pt-2">
-                      <Button type="submit" size="lg" className="min-w-[180px]">
-                        {inviteId ? '수정 내용 저장하기' : '초대장 생성하기'}
+                      <Button type="submit" size="lg" className="min-w-[180px]" disabled={submitting || loadingInvite}>
+                        {submitting
+                          ? '저장 중...'
+                          : inviteId
+                            ? '수정 내용 저장하기'
+                            : '초대장 생성하기'}
                       </Button>
                       <Button
                         type="button"

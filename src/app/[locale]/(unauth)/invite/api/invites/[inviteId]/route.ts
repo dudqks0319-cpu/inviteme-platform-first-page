@@ -14,6 +14,11 @@ export async function GET(
     return NextResponse.json({ message: '초대장을 찾을 수 없습니다.' }, { status: 404 });
   }
 
+  const userId = await getOptionalUserId();
+  if (invite.ownerId && invite.ownerId !== userId) {
+    return NextResponse.json({ message: '조회 권한이 없습니다.' }, { status: 403 });
+  }
+
   return NextResponse.json({ invite });
 }
 
