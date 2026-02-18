@@ -54,6 +54,11 @@ export default withSentryConfig(
     // Hides source maps from generated client bundles
     hideSourceMaps: true,
 
+    // Remove generated sourcemaps after upload to avoid build-time warning/noise
+    sourcemaps: {
+      deleteSourcemapsAfterUpload: true,
+    },
+
     // Automatically tree-shake Sentry logger statements to reduce bundle size
     disableLogger: true,
 

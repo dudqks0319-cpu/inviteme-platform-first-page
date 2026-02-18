@@ -58,6 +58,9 @@ const getKakaoClient = (): KakaoClient | undefined => {
   return windowWithKakao.Kakao;
 };
 
+const getKakaoAppKey = () =>
+  process.env.NEXT_PUBLIC_KAKAO_APP_KEY || process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
+
 export default function ShareButtons({
   inviteUrl,
   title,
@@ -88,9 +91,9 @@ export default function ShareButtons({
     }
 
     if (!kakao.isInitialized()) {
-      const kakaoKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY;
+      const kakaoKey = getKakaoAppKey();
       if (!kakaoKey) {
-        notify('카카오 공유 키가 설정되지 않아 링크 공유를 사용해주세요.');
+        notify('카카오 공유 키가 설정되지 않았습니다. (NEXT_PUBLIC_KAKAO_APP_KEY 또는 NEXT_PUBLIC_KAKAO_MAP_KEY)');
         return;
       }
 
