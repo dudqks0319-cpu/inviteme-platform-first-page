@@ -68,6 +68,7 @@ export default function ShareButtons({
   const [showQR, setShowQR] = useState(false);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const hasValidInviteUrl = isValidInviteUrl(inviteUrl);
 
   const notify = (message: string) => {
     onMessage?.(message);
@@ -122,6 +123,11 @@ export default function ShareButtons({
   };
 
   const handleDownloadImage = async () => {
+    if (!hasValidInviteUrl) {
+      notify('공유 링크가 준비되면 이미지 저장을 사용할 수 있어요.');
+      return;
+    }
+
     if (!captureRef.current) {
       notify('저장할 미리보기 영역을 찾지 못했습니다.');
       return;
@@ -148,6 +154,11 @@ export default function ShareButtons({
   };
 
   const handleCopyLink = async () => {
+    if (!hasValidInviteUrl) {
+      notify('공유 링크가 준비되면 다시 시도해주세요.');
+      return;
+    }
+
     try {
       await navigator.clipboard.writeText(inviteUrl);
       setCopied(true);
@@ -172,7 +183,8 @@ export default function ShareButtons({
         <button
           type="button"
           onClick={handleKakaoShare}
-          className="flex flex-col items-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3 text-sm font-medium text-[#3C1E1E] shadow-sm transition hover:brightness-95 active:scale-95"
+          disabled={!hasValidInviteUrl}
+          className="flex flex-col items-center gap-2 rounded-xl bg-[#FEE500] px-4 py-3 text-sm font-medium text-[#3C1E1E] shadow-sm transition hover:brightness-95 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="text-xl">💬</span>
           <span>카카오톡</span>
@@ -181,8 +193,8 @@ export default function ShareButtons({
         <button
           type="button"
           onClick={handleDownloadImage}
-          disabled={downloading}
-          className="flex flex-col items-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-600 active:scale-95 disabled:opacity-60"
+          disabled={downloading || !hasValidInviteUrl}
+          className="flex flex-col items-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="text-xl">{downloading ? '⏳' : '📷'}</span>
           <span>{downloading ? '저장 중...' : '이미지 저장'}</span>
@@ -191,7 +203,8 @@ export default function ShareButtons({
         <button
           type="button"
           onClick={() => setShowQR(prev => !prev)}
-          className={`flex flex-col items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-sm transition active:scale-95 ${showQR ? 'bg-indigo-600' : 'bg-indigo-500 hover:bg-indigo-600'}`}
+          disabled={!hasValidInviteUrl}
+          className={`flex flex-col items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-sm transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-60 ${showQR ? 'bg-indigo-600' : 'bg-indigo-500 hover:bg-indigo-600'}`}
         >
           <span className="text-xl">📱</span>
           <span>QR코드</span>
@@ -200,14 +213,15 @@ export default function ShareButtons({
         <button
           type="button"
           onClick={handleCopyLink}
-          className="flex flex-col items-center gap-2 rounded-xl bg-slate-700 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 active:scale-95"
+          disabled={!hasValidInviteUrl}
+          className="flex flex-col items-center gap-2 rounded-xl bg-slate-700 px-4 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="text-xl">{copied ? '✅' : '🔗'}</span>
           <span>{copied ? '복사됨!' : '링크 복사'}</span>
         </button>
       </div>
 
-      {showQR && (
+      {showQR && hasValidInviteUrl && (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-slate-200 bg-white p-6 shadow-inner">
           <QRCodeSVG value={inviteUrl} size={180} level="H" includeMargin />
           <p className="text-xs text-slate-500">QR코드를 스캔하면 초대장으로 이동합니다.</p>

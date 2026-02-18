@@ -158,26 +158,34 @@ export default function InviteCreatePageClient() {
       setLoadingInvite(true);
       setSubmitError('');
 
-      const endpoint = getI18nPath(`/invite/api/invites/${inviteId}`, locale);
-      const response = await fetch(endpoint);
-      const data = await response.json().catch(() => null);
+      try {
+        const endpoint = getI18nPath(`/invite/api/invites/${inviteId}`, locale);
+        const response = await fetch(endpoint);
+        const data = await response.json().catch(() => null);
 
-      if (!response.ok || !data?.invite) {
-        if (mounted) {
-          setSubmitError('수정할 초대장을 불러오지 못했습니다.');
+        if (!response.ok || !data?.invite) {
+          if (mounted) {
+            setSubmitError('수정할 초대장을 불러오지 못했습니다.');
+          }
+          return;
         }
-        setLoadingInvite(false);
-        return;
-      }
 
-      if (!mounted) {
-        return;
-      }
+        if (!mounted) {
+          return;
+        }
 
-      const invite = data.invite as InviteApiModel;
-      setSelectedTemplateId(invite.templateId);
-      form.reset(mapInviteToFormValues(invite));
-      setLoadingInvite(false);
+        const invite = data.invite as InviteApiModel;
+        setSelectedTemplateId(invite.templateId);
+        form.reset(mapInviteToFormValues(invite));
+      } catch {
+        if (mounted) {
+          setSubmitError('초대장 정보를 불러오는 중 네트워크 오류가 발생했습니다.');
+        }
+      } finally {
+        if (mounted) {
+          setLoadingInvite(false);
+        }
+      }
     };
 
     void fetchInvite();
@@ -210,35 +218,38 @@ export default function InviteCreatePageClient() {
       ? getI18nPath(`/invite/api/invites/${inviteId}`, locale)
       : getI18nPath('/invite/api/invites', locale);
 
-    const response = await fetch(endpoint, {
-      method: inviteId ? 'PATCH' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(values),
-    });
+    try {
+      const response = await fetch(endpoint, {
+        method: inviteId ? 'PATCH' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
 
-    const data = await response.json().catch(() => null);
+      const data = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      setSubmitError(data?.message || '초대장 저장에 실패했습니다.');
+      if (!response.ok) {
+        setSubmitError(data?.message || '초대장 저장에 실패했습니다.');
+        return;
+      }
+
+      if (!inviteId && typeof window !== 'undefined') {
+        window.localStorage.removeItem(draftStorageKey);
+      }
+
+      const targetId = inviteId || data.id;
+      if (!targetId) {
+        setSubmitError('저장 결과를 확인할 수 없습니다. 다시 시도해주세요.');
+        return;
+      }
+
+      router.push(getI18nPath(`/invite/preview?id=${targetId}`, locale));
+    } catch {
+      setSubmitError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    if (!inviteId && typeof window !== 'undefined') {
-      window.localStorage.removeItem(draftStorageKey);
-    }
-
-    const targetId = inviteId || data.id;
-    if (!targetId) {
-      setSubmitError('저장 결과를 확인할 수 없습니다. 다시 시도해주세요.');
-      setSubmitting(false);
-      return;
-    }
-
-    setSubmitting(false);
-    router.push(getI18nPath(`/invite/preview?id=${targetId}`, locale));
   };
 
   if (!template) {

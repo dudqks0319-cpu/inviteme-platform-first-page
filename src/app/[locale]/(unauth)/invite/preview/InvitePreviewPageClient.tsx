@@ -42,22 +42,30 @@ export default function InvitePreviewPageClient() {
       setLoading(true);
       setMessage('');
 
-      const endpoint = getI18nPath(`/invite/api/invites/${inviteId}`, locale);
-      const response = await fetch(endpoint);
-      const data = await response.json().catch(() => null);
+      try {
+        const endpoint = getI18nPath(`/invite/api/invites/${inviteId}`, locale);
+        const response = await fetch(endpoint);
+        const data = await response.json().catch(() => null);
 
-      if (!mounted) {
-        return;
+        if (!mounted) {
+          return;
+        }
+
+        if (!response.ok || !data?.invite) {
+          setMessage('초대장을 찾을 수 없습니다.');
+          return;
+        }
+
+        setInvite(data.invite as InviteApiModel);
+      } catch {
+        if (mounted) {
+          setMessage('초대장 정보를 불러오는 중 네트워크 오류가 발생했습니다.');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-
-      if (!response.ok || !data?.invite) {
-        setMessage('초대장을 찾을 수 없습니다.');
-        setLoading(false);
-        return;
-      }
-
-      setInvite(data.invite as InviteApiModel);
-      setLoading(false);
     };
 
     void fetchInvite();
@@ -96,25 +104,28 @@ export default function InvitePreviewPageClient() {
     setPaying(true);
     setMessage('');
 
-    const endpoint = getI18nPath(`/invite/api/invites/${invite.id}/checkout`, locale);
-    const response = await fetch(endpoint, {
-      method: 'POST',
-    });
+    try {
+      const endpoint = getI18nPath(`/invite/api/invites/${invite.id}/checkout`, locale);
+      const response = await fetch(endpoint, {
+        method: 'POST',
+      });
 
-    const data = await response.json().catch(() => null);
+      const data = await response.json().catch(() => null);
 
-    if (!response.ok) {
-      setMessage(data?.message || '결제 처리에 실패했습니다.');
+      if (!response.ok) {
+        setMessage(data?.message || '결제 처리에 실패했습니다.');
+        return;
+      }
+
+      setMessage('프리미엄 템플릿 결제가 완료되었습니다.');
+      if (data?.invite) {
+        setInvite(data.invite as InviteApiModel);
+      }
+    } catch {
+      setMessage('결제 처리 중 네트워크 오류가 발생했습니다. 다시 시도해주세요.');
+    } finally {
       setPaying(false);
-      return;
     }
-
-    setMessage('프리미엄 템플릿 결제가 완료되었습니다.');
-    if (data?.invite) {
-      setInvite(data.invite as InviteApiModel);
-    }
-
-    setPaying(false);
   };
 
   if (!inviteId) {
